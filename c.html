@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Page not found</title>
+    <style>
+        body {
+
+            background-color: #dadada;
+            color: rgb(66, 66, 66);
+        }
+    </style>
+</head>
+<body>
+    <ul style="list-style: none; margin-left: 50px;">
+        <a href="#div1" style="margin-right: 10px;">1</a>
+        <a href="#div2" style="margin-right: 10px;">2</a>
+        <a href="#div3" style="margin-right: 10px;">3</a>
+        <a href="#div4" style="margin-right: 10px;">4</a>
+        <a href="#div5" style="margin-right: 10px;">5</a>
+        <a href="#div6">6</a>
+    </ul>
+
+    <div style="padding-bottom: 800px;"></div>
+<pre>
+    <div id="div1">
+        
+        <h2>1</h2>
+   1. Retrieve details of all books in the library – id, title, name of publisher,authors,
+    number of copies in each branch, etc.
+
+    SELECT 
+        B.BOOK_ID,
+        B.TITLE,
+        B.PUBLISHER_NAME,
+        A.AUTHOR_NAME,
+        C.NO_OF_COPIES,
+        L.BRANCH_ID
+    FROM 
+        BOOK B,
+        BOOK_AUTHORS A,
+        BOOK_COPIES C,
+        LIBRARY_BRANCH L
+    WHERE 
+        B.BOOK_ID = A.BOOK_ID
+        AND B.BOOK_ID = C.BOOK_ID
+        AND L.BRANCH_ID = C.BRANCH_ID;
+    <div>---------------------------------------------</div>
+    2. Get the particulars of borrowers who have borrowed more than 3 books, but from 
+       Jan 2017 to Jun 2017
+
+        SELECT 
+            CARD_NO
+        FROM 
+            BOOK_LENDING
+        WHERE 
+            DATE_OUT BETWEEN '01-JAN-2017' AND '01-JUL-2017'
+        GROUP BY 
+            CARD_NO
+        HAVING 
+            COUNT(*) > 3;
+    <div>---------------------------------------------</div>
+    3. Delete a book in BOOK table. Update the contents of other tables to reflect this data 
+        manipulation operation.
+
+        DELETE FROM BOOK 
+        WHERE BOOK_ID = '3';
+
+SQL> SELECT * FROM BOOK;
+
+    <div>---------------------------------------------</div>   
+    5. Create a view of all books and its number of copies that are currently available in 
+        the Library.
+        
+SQL> CONNECT SYSTEM/tiger;
+Connected.
+SQL> GRANT CREATE VIEW TO scott;
+Grant succeeded.
+SQL> CONNECT scott/tiger;
+Connected.
+
+
+        CREATE VIEW BC AS 
+        SELECT 
+            B.BOOK_ID,
+            C.TITLE,
+            B.BRANCH_ID,
+            (B.NO_OF_COPIES - (
+                SELECT COUNT(*) 
+                FROM BOOK_LENDING 
+                WHERE B.BOOK_ID = BOOK_ID AND B.BRANCH_ID = BRANCH_ID
+            )) AS NO_COPY 
+        FROM 
+            BOOK_COPIES B, BOOK C
+        WHERE 
+            B.BOOK_ID = C.BOOK_ID;
+
+
+SQL> SELECT * FROM BC;
+
+<div>---------------------------------------------</div>   
+<div>---------------------------------------------</div>   
+        CREATE TABLE PUBLISHER
+        (
+            NAME VARCHAR2(20),
+            PHONE INTEGER,
+            ADDRESS VARCHAR2(20),
+            CONSTRAINT PKP PRIMARY KEY (NAME)
+        );
+
+        CREATE TABLE BOOK
+        (
+            BOOK_ID VARCHAR(8),
+            TITLE VARCHAR2(20),
+            PUBLISHER_NAME VARCHAR(20),
+            PUB_YEAR INTEGER,
+            CONSTRAINT PKB PRIMARY KEY (BOOK_ID),
+            CONSTRAINT FKB FOREIGN KEY (PUBLISHER_NAME) REFERENCES PUBLISHER (NAME)
+        );
+
+        CREATE TABLE BOOK_AUTHORS
+        (
+            BOOK_ID VARCHAR(8),
+            AUTHOR_NAME VARCHAR2(20),
+            CONSTRAINT PKBA PRIMARY KEY (BOOK_ID, AUTHOR_NAME),
+            CONSTRAINT FKBA FOREIGN KEY (BOOK_ID) REFERENCES BOOK (BOOK_ID) ON DELETE CASCADE
+        );
+
+        CREATE TABLE LIBRARY_BRANCH
+        (
+            BRANCH_ID VARCHAR(6),
+            BRANCH_NAME VARCHAR2(20),
+            ADDRESS VARCHAR2(20),
+            CONSTRAINT PKLB PRIMARY KEY (BRANCH_ID)
+        );
+
+        CREATE TABLE BOOK_COPIES
+        (
+            BOOK_ID VARCHAR(8),
+            BRANCH_ID VARCHAR2(6),
+            NO_OF_COPIES INTEGER,
+            CONSTRAINT PKBC PRIMARY KEY (BOOK_ID, BRANCH_ID),
+            CONSTRAINT FKBC FOREIGN KEY (BOOK_ID) REFERENCES BOOK (BOOK_ID) ON DELETE CASCADE,
+            CONSTRAINT FKBB FOREIGN KEY (BRANCH_ID) REFERENCES LIBRARY_BRANCH (BRANCH_ID)
+        );
+
+        CREATE TABLE BOOK_LENDING
+        (
+            BOOK_ID VARCHAR(8),
+            BRANCH_ID VARCHAR2(6),
+            CARD_NO INTEGER,
+            DATE_OUT DATE,
+            DUE_DATE DATE,
+            CONSTRAINT PKBL PRIMARY KEY (BOOK_ID, BRANCH_ID, CARD_NO),
+            CONSTRAINT FKBL FOREIGN KEY (BOOK_ID) REFERENCES BOOK (BOOK_ID) ON DELETE CASCADE
+        );
+
+        INSERT INTO PUBLISHER VALUES ('MCGRAW-HILL', 9989076587, 'BANGALORE');
+        INSERT INTO BOOK VALUES ('1','DBMS', 'MCGRAW-HILL',2017);
+        INSERT INTO BOOK_AUTHORS VALUES ('1','NAVATHE');
+        INSERT INTO LIBRARY_BRANCH VALUES ('10','VV PURAM','BANGALORE');
+        INSERT INTO BOOK_COPIES VALUES ( '1','10', 10);
+        INSERT INTO BOOK_LENDING VALUES ('1', '10', 101,'01-JAN-17','01-JUN-17');
+
+    </div>
+</pre>
+<pre>
+    <div id="div2">
+        <h2>2</h2>
+    1. Count the customers with grades above Bangalore’s average.
+
+        SELECT 
+            GRADE,
+            COUNT(DISTINCT CUSTOMER_ID) AS NO_OF_CUSTOMER
+        FROM 
+            CUSTOMER
+        GROUP BY 
+            GRADE
+        HAVING 
+            GRADE > (
+                SELECT AVG(GRADE)
+                FROM CUSTOMER
+                WHERE CITY = 'BANGALORE'
+            );
+
+    <div>---------------------------------------------</div>
+    2. Find the name and numbers of all salesmen who had more than one customer.
+
+        SELECT 
+            SALESMAN_ID,
+            NAME
+        FROM 
+            SALESMAN S
+        WHERE 
+            (
+                (SELECT COUNT(*) 
+                FROM CUSTOMER 
+                WHERE SALESMAN_ID = S.SALESMAN_ID) > 1
+            );
+
+    <div>---------------------------------------------</div>
+    3.List all salesmen and indicate those who have and don’t have customers in their cities 
+        (Use UNION operation.)
+
+        SELECT 
+            S.SALESMAN_ID,
+            S.CITY
+        FROM 
+            SALESMAN S
+        WHERE 
+            EXISTS (
+                SELECT 
+                    CITY 
+                FROM 
+                    CUSTOMER 
+                WHERE 
+                    S.CITY = CITY AND S.SALESMAN_ID = SALESMAN_ID
+            )
+        UNION
+        SELECT 
+            SALESMAN_ID,
+            'NO MATCH OF CITIES'
+        FROM 
+            SALESMAN S
+        WHERE 
+            NOT EXISTS (
+                SELECT 
+                    CITY 
+                FROM 
+                    CUSTOMER 
+                WHERE 
+                    S.CITY = CITY AND S.SALESMAN_ID = SALESMAN_ID
+            );
+
+
+    <div>---------------------------------------------</div>   
+    4.Create a view that finds the salesman who has the customer with the highest order of 
+    a day.
+
+    CREATE VIEW SalesmanWithHighestOrderOfDa1 as 
+
+        SELECT DISTINCT 
+            S.SALESMAN_ID,
+            S.ORD_DATE
+        FROM 
+            ORDERS S
+        WHERE 
+            (
+                SELECT 
+                    SUM(PURCHASE_AMT) 
+                FROM 
+                    ORDERS 
+                WHERE 
+                    SALESMAN_ID = S.SALESMAN_ID 
+                    AND ORD_DATE = S.ORD_DATE 
+                    AND S.CUSTOMER_ID = CUSTOMER_ID
+            )
+            = (
+                SELECT 
+                    MAX(SUM(PURCHASE_AMT))
+                FROM 
+                    ORDERS S1
+                WHERE 
+                    S1.ORD_DATE = S.ORD_DATE
+                GROUP BY 
+                    S1.ORD_DATE, S1.SALESMAN_ID, S1.CUSTOMER_ID
+            );
+
+<div>---------------------------------------------</div>
+    5.Demonstrate the DELETE operation by removing salesman with id 1000. All his orders must also be deleted.
+    Use ON DELETE CASCADE at the end of foreign key definitions while creating child table orders and then execute the following:
+    Use ON DELETE SET NULL at the end of foreign key definitions while creating child table customers and then executes the following:
+
+    DELETE FROM SALESMAN
+    WHERE SALESMAN_ID=1000;
+
+
+    SELECT * FROM SALESMAN;
+    SELECT * FROM CUSTOMER;
+    SELECT * FROM ORDERS;
+
+
+<div>---------------------------------------------</div>   
+<div>---------------------------------------------</div>   
+<div>---------------------------------------------</div>   
+        CREATE TABLE SALESMAN
+        (
+            SALESMAN_ID VARCHAR(8),
+            NAME VARCHAR(20),
+            CITY VARCHAR(20),
+            COMMISSION VARCHAR2(10),
+            CONSTRAINT PKS PRIMARY KEY (SALESMAN_ID)
+        );
+
+        CREATE TABLE CUSTOMER
+        (
+            CUSTOMER_ID VARCHAR(8),
+            CUST_NAME VARCHAR2(20),
+            CITY VARCHAR2(20),
+            GRADE NUMBER(3),
+            SALESMAN_ID VARCHAR(8),
+            CONSTRAINT PKC PRIMARY KEY (CUSTOMER_ID),
+            CONSTRAINT FKC FOREIGN KEY (SALESMAN_ID) REFERENCES SALESMAN (SALESMAN_ID) ON DELETE SET NULL
+        );
+
+        CREATE TABLE ORDERS
+        (
+            ORD_NO VARCHAR(8),
+            PURCHASE_AMT NUMBER(10, 2),
+            ORD_DATE DATE,
+            CUSTOMER_ID VARCHAR(8),
+            SALESMAN_ID VARCHAR(8),
+            CONSTRAINT PKO PRIMARY KEY (ORD_NO),
+            CONSTRAINT FKOC FOREIGN KEY (CUSTOMER_ID) REFERENCES CUSTOMER (CUSTOMER_ID) ON DELETE CASCADE,
+            CONSTRAINT FKOS FOREIGN KEY (SALESMAN_ID) REFERENCES SALESMAN (SALESMAN_ID) ON DELETE CASCADE
+        );
+
+
+        INSERT INTO SALESMAN VALUES ('1000', 'JOHN','BANGALORE','25%');
+        INSERT INTO CUSTOMER VALUES ('C1', 'PREETHI','BANGALORE', 100, '1000');
+        INSERT INTO ORDERS VALUES ('O1', 5000, '04-MAY-17', 'C1', '1000');
+
+    </div>
+</pre>
+<pre>
+    <div id="div3">
+        <h2>3</h2>
+       1. List the titles of all movies directed by ‘Hitchcock’.
+
+       SELECT M.MOV_TITLE
+       FROM MOVIES M, DIRECTOR D
+       WHERE M.DIR_ID = D.DIR_ID AND D.DIR_NAME = 'HITCHCOCK';
+       
+
+    <div>---------------------------------------------</div>
+    2. Find the movie names where one or more actors acted in two or more movies.
+
+        SELECT 
+            MOV_TITLE
+        FROM 
+            MOVIES M, MOVIE_CAST MV
+        WHERE 
+            M.MOV_ID = MV.MOV_ID 
+            AND ACT_ID IN (
+                SELECT 
+                    ACT_ID
+                FROM 
+                    MOVIE_CAST
+                GROUP BY 
+                    ACT_ID
+                HAVING 
+                    COUNT(ACT_ID) >= 1
+            )
+        GROUP BY 
+            MOV_TITLE
+        HAVING 
+            COUNT(*) > 1;
+
+    <div>---------------------------------------------</div>
+    3.List all actors who acted in a movie before 2000 and also in a movie after 2015 
+      (use JOIN operation).
+
+        SELECT 
+            A.ACT_NAME
+        FROM 
+            ACTOR A
+        JOIN 
+            MOVIE_CAST C ON A.ACT_ID = C.ACT_ID
+        JOIN 
+            MOVIES M ON C.MOV_ID = M.MOV_ID
+        WHERE 
+            M.MOV_YEAR NOT BETWEEN 2000 AND 2015;
+  
+
+    <div>---------------------------------------------</div>   
+    4. Find the title of movies and number of stars for each movie that has at least one 
+    rating and find the highest number of stars that movie received. Sort the result 
+    by movie title.
+
+        SELECT 
+            MOV_TITLE, 
+            MAX(REV_STARS)
+        FROM 
+            MOVIES
+        INNER JOIN 
+            RATING USING (MOV_ID)
+        GROUP BY 
+            MOV_TITLE
+        HAVING 
+            MAX(REV_STARS) > 0
+        ORDER BY 
+            MOV_TITLE;
+
+
+<div>---------------------------------------------</div>
+    5.Update rating of all movies directed by ‘Steven Spielberg’ to 5 KL
+
+        UPDATE RATING
+        SET REV_STARS = 5
+        WHERE MOV_ID IN (
+            SELECT 
+                M.MOV_ID 
+            FROM 
+                MOVIES M,
+                DIRECTOR D
+            WHERE 
+                M.DIR_ID = D.DIR_ID 
+                AND D.DIR_NAME = 'STEVEN SPIELBERG'
+        );
+
+
+
+<div>---------------------------------------------</div>   
+<div>---------------------------------------------</div>   
+<div>---------------------------------------------</div>   
+        CREATE TABLE ACTOR
+        (
+            ACT_ID NUMBER(3),
+            ACT_NAME VARCHAR(20),
+            ACT_GENDER CHAR(1),
+            CONSTRAINT PKAC PRIMARY KEY (ACT_ID)
+        );
+
+        CREATE TABLE DIRECTOR
+        (
+            DIR_ID NUMBER(3),
+            DIR_NAME VARCHAR(20),
+            DIR_PHONE NUMBER(10),
+            CONSTRAINT PKDI PRIMARY KEY (DIR_ID)
+        );
+
+        CREATE TABLE MOVIES
+        (
+            MOV_ID NUMBER(4),
+            MOV_TITLE VARCHAR(25),
+            MOV_YEAR NUMBER(4),
+            MOV_LANG VARCHAR(12),
+            DIR_ID NUMBER(3),
+            CONSTRAINT PKMV PRIMARY KEY (MOV_ID),
+            CONSTRAINT FKMV FOREIGN KEY (DIR_ID) REFERENCES DIRECTOR (DIR_ID)
+        );
+
+        CREATE TABLE MOVIE_CAST
+        (
+            ACT_ID NUMBER(3),
+            MOV_ID NUMBER(4),
+            ROLE VARCHAR(10),
+            CONSTRAINT PKMC PRIMARY KEY (ACT_ID, MOV_ID),
+            CONSTRAINT FKMC FOREIGN KEY (ACT_ID) REFERENCES ACTOR (ACT_ID),
+            CONSTRAINT FKMCC FOREIGN KEY (MOV_ID) REFERENCES MOVIES (MOV_ID)
+        );
+
+        CREATE TABLE RATING
+        (
+            MOV_ID NUMBER(4),
+            REV_STARS INTEGER,
+            CONSTRAINT FKRA FOREIGN KEY (MOV_ID) REFERENCES MOVIES (MOV_ID)
+        );
+
+
+
+        INSERT INTO ACTOR VALUES (301,'ANUSHKA','F');
+        INSERT INTO DIRECTOR VALUES (60,'RAJAMOULI', 8751611001);
+        INSERT INTO MOVIES VALUES (1001,'BAHUBALI-2', 2017, 'TELAGU', 60);
+        INSERT INTO MOVIE_CAST VALUES (301, 1002, 'HEROINE');
+        INSERT INTO RATING VALUES (1001, 4);
+    
+    </div>
+</pre>
+    <div id="div6">
+        <h2>-</h2>
+        <!-- Content for Div 6 -- #e0e0e0>
+    </div>
+</body>
+</html>
